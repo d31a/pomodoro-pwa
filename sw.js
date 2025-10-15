@@ -1,7 +1,7 @@
 const CACHE_NAME = "pomodoro-cache-v1";
 const CORE = [
 	"./",
-	"./index.html", // If you name the page index.html
+	"./index.html",
 	"./manifest.json",
 	"./sw.js",
 	"./icons/icon-192.png",
