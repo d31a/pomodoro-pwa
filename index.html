@@ -1,0 +1,581 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<title>Pomodoro Timer</title>
+		<meta
+			name="description"
+			content="A tiny, accessible, single‑file Pomodoro timer."
+		/>
+		<meta name="theme-color" content="#0b0f14" />
+		<link rel="manifest" href="manifest.json" />
+		<link rel="icon" href="icons/icon-192.png" sizes="192x192" />
+		<link rel="apple-touch-icon" href="icons/icon-192.png" />
+		<style>
+			:root {
+				--bg: #0b0f14;
+				--card: #121922;
+				--text: #eaf2ff;
+				--muted: #9bb0c8;
+				--accent: #6aa6ff;
+				--danger: #ff6a6a;
+				--success: #52d273;
+				--ring: #203047;
+			}
+			@media (prefers-color-scheme: light) {
+				:root {
+					--bg: #f6f8fc;
+					--card: #ffffff;
+					--text: #0b0f14;
+					--muted: #4a5b70;
+					--accent: #2d6bff;
+					--danger: #d63d3d;
+					--success: #1b9b4f;
+					--ring: #dbe6ff;
+				}
+			}
+			* {
+				box-sizing: border-box;
+			}
+			html,
+			body {
+				height: 100%;
+			}
+			body {
+				margin: 0;
+				font: 16px/1.4 system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Inter,
+					Arial, sans-serif;
+				background: radial-gradient(
+					1200px 800px at 70% -20%,
+					#1a2433 0%,
+					var(--bg) 60%
+				);
+				color: var(--text);
+				display: grid;
+				place-items: center;
+				padding: 24px;
+			}
+			.wrap {
+				width: min(680px, 100%);
+			}
+			.card {
+				background: var(--card);
+				border: 1px solid rgba(255, 255, 255, 0.06);
+				border-radius: 20px;
+				box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+				padding: 20px;
+				overflow: hidden;
+			}
+			header {
+				display: flex;
+				align-items: center;
+				justify-content: space-between;
+				gap: 12px;
+				margin-bottom: 10px;
+			}
+			.title {
+				font-weight: 700;
+				letter-spacing: 0.2px;
+			}
+			.chip {
+				font: 12px/1.2 inherit;
+				color: var(--muted);
+				background: transparent;
+				border: 1px solid rgba(255, 255, 255, 0.12);
+				padding: 6px 10px;
+				border-radius: 999px;
+			}
+			.modes {
+				display: flex;
+				gap: 6px;
+				margin: 8px 0 14px;
+			}
+			.modes button {
+				flex: 1;
+				padding: 10px 12px;
+				border-radius: 12px;
+				border: 1px solid rgba(255, 255, 255, 0.12);
+				background: #0d1520;
+				color: var(--muted);
+				cursor: pointer;
+			}
+			.modes button[aria-pressed="true"] {
+				color: var(--text);
+				border-color: var(--accent);
+				box-shadow: 0 0 0 3px var(--ring) inset;
+			}
+			.ring {
+				position: relative;
+				width: min(360px, 100%);
+				aspect-ratio: 1;
+				margin: 18px auto;
+				display: grid;
+				place-items: center;
+			}
+			.ring svg {
+				width: 100%;
+				height: 100%;
+				transform: rotate(-90deg);
+			}
+			.ring .time {
+				position: absolute;
+				text-align: center;
+			}
+			.time .big {
+				font-size: clamp(44px, 10vw, 64px);
+				letter-spacing: 0.5px;
+				font-variant-numeric: tabular-nums;
+			}
+			.time .small {
+				color: var(--muted);
+				font-size: 14px;
+			}
+			.controls {
+				display: flex;
+				gap: 10px;
+				justify-content: center;
+				flex-wrap: wrap;
+				margin-top: 4px;
+			}
+			.btn {
+				padding: 12px 16px;
+				border-radius: 12px;
+				border: 1px solid rgba(255, 255, 255, 0.12);
+				background: #0d1520;
+				color: var(--text);
+				cursor: pointer;
+			}
+			.btn.primary {
+				background: linear-gradient(180deg, var(--accent), #2a5fe6);
+				border-color: transparent;
+				color: #fff;
+				font-weight: 700;
+			}
+			.btn.danger {
+				background: linear-gradient(180deg, var(--danger), #b42f2f);
+				border-color: transparent;
+				color: #fff;
+			}
+			.btn:focus-visible {
+				outline: 3px solid var(--ring);
+				outline-offset: 2px;
+			}
+			.grid {
+				display: grid;
+				grid-template-columns: repeat(3, 1fr);
+				gap: 10px;
+				margin-top: 16px;
+			}
+			.field {
+				background: #0d1520;
+				border: 1px solid rgba(255, 255, 255, 0.12);
+				border-radius: 12px;
+				padding: 10px;
+			}
+			.field label {
+				display: block;
+				font-size: 12px;
+				color: var(--muted);
+			}
+			.field input {
+				width: 100%;
+				background: transparent;
+				border: 0;
+				color: var(--text);
+				font-weight: 600;
+				font-size: 18px;
+				padding: 6px 0;
+				outline: none;
+			}
+			.toggles {
+				display: flex;
+				gap: 10px;
+				align-items: center;
+				margin-top: 10px;
+				color: var(--muted);
+			}
+			.sr-only {
+				position: absolute;
+				width: 1px;
+				height: 1px;
+				padding: 0;
+				margin: -1px;
+				overflow: hidden;
+				clip: rect(0, 0, 0, 0);
+				white-space: nowrap;
+				border: 0;
+			}
+			footer {
+				margin-top: 18px;
+				color: var(--muted);
+				font-size: 12px;
+				display: flex;
+				justify-content: space-between;
+				align-items: center;
+				flex-wrap: wrap;
+				gap: 8px;
+			}
+			.kbd {
+				font: 12px/1.2 ui-monospace, SFMono-Regular, Menlo, monospace;
+				background: #0d1520;
+				border: 1px solid rgba(255, 255, 255, 0.15);
+				padding: 4px 6px;
+				border-radius: 6px;
+				color: var(--muted);
+			}
+		</style>
+	</head>
+	<body>
+		<div class="wrap">
+			<div class="card" role="region" aria-labelledby="h">
+				<header>
+					<h1 id="h" class="title">Pomodoro</h1>
+					<span class="chip" id="status">Ready</span>
+				</header>
+
+				<div class="modes" role="tablist" aria-label="Modes">
+					<button
+						id="mode-work"
+						role="tab"
+						aria-selected="true"
+						aria-pressed="true"
+					>
+						Work
+					</button>
+					<button
+						id="mode-short"
+						role="tab"
+						aria-selected="false"
+						aria-pressed="false"
+					>
+						Short break
+					</button>
+					<button
+						id="mode-long"
+						role="tab"
+						aria-selected="false"
+						aria-pressed="false"
+					>
+						Long break
+					</button>
+				</div>
+
+				<div class="ring" aria-live="polite" aria-atomic="true">
+					<svg viewBox="0 0 120 120" aria-hidden="true">
+						<circle
+							cx="60"
+							cy="60"
+							r="54"
+							fill="none"
+							stroke="rgba(255,255,255,.08)"
+							stroke-width="8"
+						/>
+						<circle
+							id="progress"
+							cx="60"
+							cy="60"
+							r="54"
+							fill="none"
+							stroke="var(--accent)"
+							stroke-width="8"
+							stroke-linecap="round"
+							stroke-dasharray="339.292"
+							stroke-dashoffset="339.292"
+						/>
+					</svg>
+					<div class="time">
+						<div class="big" id="time">25:00</div>
+						<div class="small" id="cycle">Cycle 1</div>
+					</div>
+				</div>
+
+				<div class="controls">
+					<button class="btn primary" id="start">Start (Space)</button>
+					<button class="btn" id="pause">Pause</button>
+					<button class="btn" id="skip">Skip ⏭︎</button>
+					<button class="btn danger" id="reset">Reset (R)</button>
+				</div>
+
+				<div class="grid" aria-label="Settings">
+					<div class="field">
+						<label for="work">Work (min)</label
+						><input id="work" type="number" min="1" value="25" />
+					</div>
+					<div class="field">
+						<label for="short">Short break (min)</label
+						><input id="short" type="number" min="1" value="5" />
+					</div>
+					<div class="field">
+						<label for="long">Long break (min)</label
+						><input id="long" type="number" min="1" value="15" />
+					</div>
+				</div>
+
+				<div class="toggles">
+					<label
+						><input type="checkbox" id="auto" checked /> Auto‑advance</label
+					>
+					<label><input type="checkbox" id="sound" checked /> Sound</label>
+					<label
+						><input type="checkbox" id="notify" /> Desktop notification</label
+					>
+				</div>
+
+				<footer>
+					<div>
+						Shortcuts: <span class="kbd">Space</span> start/pause •
+						<span class="kbd">R</span> reset • <span class="kbd">B</span> change
+						mode
+					</div>
+					<div id="complete" aria-live="polite" class="sr-only"></div>
+				</footer>
+			</div>
+		</div>
+
+		<script>
+			// ===== Utilities =====
+			const $ = (sel) => document.querySelector(sel);
+			const pad = (n) => String(n).padStart(2, "0");
+			const ringLen = 2 * Math.PI * 54; // circle circumference
+
+			const el = {
+				status: $("#status"),
+				time: $("#time"),
+				cycle: $("#cycle"),
+				progress: $("#progress"),
+				start: $("#start"),
+				pause: $("#pause"),
+				reset: $("#reset"),
+				skip: $("#skip"),
+				workI: $("#work"),
+				shortI: $("#short"),
+				longI: $("#long"),
+				auto: $("#auto"),
+				sound: $("#sound"),
+				notify: $("#notify"),
+				modeWork: $("#mode-work"),
+				modeShort: $("#mode-short"),
+				modeLong: $("#mode-long"),
+				completeLive: $("#complete"),
+			};
+
+			// ===== State =====
+			const state = {
+				mode: "work",
+				seconds: 25 * 60,
+				initial: 25 * 60,
+				running: false,
+				cycle: 1,
+				ticker: null,
+			};
+
+			// Restore settings
+			const saved = JSON.parse(
+				localStorage.getItem("pomodoro-settings") || "{}"
+			);
+			if (saved.work) el.workI.value = saved.work;
+			if (saved.short) el.shortI.value = saved.short;
+			if (saved.long) el.longI.value = saved.long;
+			if (saved.auto !== undefined) el.auto.checked = saved.auto;
+			if (saved.sound !== undefined) el.sound.checked = saved.sound;
+			if (saved.notify) el.notify.checked = saved.notify;
+
+			function saveSettings() {
+				localStorage.setItem(
+					"pomodoro-settings",
+					JSON.stringify({
+						work: +el.workI.value,
+						short: +el.shortI.value,
+						long: +el.longI.value,
+						auto: el.auto.checked,
+						sound: el.sound.checked,
+						notify: el.notify.checked,
+					})
+				);
+			}
+
+			// ===== Sound (tiny beep) =====
+			let audioCtx;
+			function beep() {
+				if (!el.sound.checked) return;
+				audioCtx ||= new (window.AudioContext || window.webkitAudioContext)();
+				const o = audioCtx.createOscillator();
+				const g = audioCtx.createGain();
+				o.type = "sine";
+				o.frequency.value = 880; // A5
+				g.gain.setValueAtTime(0.001, audioCtx.currentTime);
+				g.gain.exponentialRampToValueAtTime(0.2, audioCtx.currentTime + 0.01);
+				g.gain.exponentialRampToValueAtTime(
+					0.00001,
+					audioCtx.currentTime + 0.4
+				);
+				o.connect(g).connect(audioCtx.destination);
+				o.start();
+				o.stop(audioCtx.currentTime + 0.42);
+			}
+
+			// ===== Notifications =====
+			if (saved.notify) {
+				if (Notification && Notification.permission === "default") {
+					Notification.requestPermission();
+				}
+			}
+			function notify(msg) {
+				if (!el.notify.checked || !("Notification" in window)) return;
+				if (Notification.permission === "granted")
+					new Notification("Pomodoro", { body: msg });
+				else if (Notification.permission === "default")
+					Notification.requestPermission();
+			}
+
+			// ===== Rendering =====
+			function setMode(mode) {
+				state.mode = mode;
+				const mins =
+					mode === "work"
+						? +el.workI.value
+						: mode === "short"
+						? +el.shortI.value
+						: +el.longI.value;
+				state.initial = mins * 60;
+				state.seconds = state.initial;
+				state.running = false;
+				clearInterval(state.ticker);
+				render();
+				el.status.textContent =
+					mode === "work"
+						? "Focus time"
+						: mode === "short"
+						? "Short break"
+						: "Long break";
+				el.modeWork.setAttribute("aria-pressed", mode === "work");
+				el.modeShort.setAttribute("aria-pressed", mode === "short");
+				el.modeLong.setAttribute("aria-pressed", mode === "long");
+				el.modeWork.setAttribute("aria-selected", mode === "work");
+				el.modeShort.setAttribute("aria-selected", mode === "short");
+				el.modeLong.setAttribute("aria-selected", mode === "long");
+			}
+
+			function render() {
+				const m = Math.floor(state.seconds / 60),
+					s = state.seconds % 60;
+				el.time.textContent = `${pad(m)}:${pad(s)}`;
+				el.progress.style.strokeDasharray = String(ringLen);
+				const pct = 1 - state.seconds / state.initial;
+				el.progress.style.strokeDashoffset = String((1 - pct) * ringLen);
+				el.cycle.textContent = `Cycle ${state.cycle}`;
+				el.start.textContent = state.running ? "Running…" : "Start (Space)";
+			}
+
+			function tick() {
+				if (!state.running) return;
+				state.seconds -= 1;
+				render();
+				if (state.seconds <= 0) {
+					clearInterval(state.ticker);
+					state.running = false;
+					render();
+					beep();
+					const next =
+						state.mode === "work"
+							? "Work session complete – take a break."
+							: "Break finished – time to focus.";
+					el.completeLive.textContent = next; // SR announcement
+					notify(next);
+					if (el.auto.checked) {
+						if (state.mode === "work") {
+							state.cycle++;
+							setMode("short");
+							start();
+						} else {
+							setMode("work");
+							start();
+						}
+					}
+				}
+			}
+
+			function start() {
+				if (state.running) return;
+				state.running = true;
+				clearInterval(state.ticker);
+				state.ticker = setInterval(tick, 1000);
+				render();
+				el.status.textContent = "Running";
+			}
+			function pause() {
+				state.running = false;
+				clearInterval(state.ticker);
+				render();
+				el.status.textContent = "Paused";
+			}
+			function reset() {
+				const m =
+					state.mode === "work"
+						? +el.workI.value
+						: state.mode === "short"
+						? +el.shortI.value
+						: +el.longI.value;
+				state.initial = m * 60;
+				state.seconds = state.initial;
+				pause();
+				render();
+				el.status.textContent = "Ready";
+			}
+			function skip() {
+				state.seconds = 1;
+			}
+
+			el.modeWork.addEventListener("click", () => setMode("work"));
+			el.modeShort.addEventListener("click", () => setMode("short"));
+			el.modeLong.addEventListener("click", () => setMode("long"));
+
+			el.start.addEventListener("click", start);
+			el.pause.addEventListener("click", pause);
+			el.reset.addEventListener("click", () => {
+				state.cycle = 1;
+				reset();
+			});
+			el.skip.addEventListener("click", skip);
+
+			[el.workI, el.shortI, el.longI, el.auto, el.sound, el.notify].forEach(
+				(x) =>
+					x.addEventListener("change", () => {
+						saveSettings();
+						if (!state.running) reset();
+					})
+			);
+
+			window.addEventListener("keydown", (e) => {
+				if (e.key === " ") {
+					e.preventDefault();
+					state.running ? pause() : start();
+				}
+				if (e.key.toLowerCase() === "r") {
+					e.preventDefault();
+					state.cycle = 1;
+					reset();
+				}
+				if (e.key.toLowerCase() === "b") {
+					e.preventDefault();
+					setMode(state.mode === "work" ? "short" : "work");
+				}
+			});
+
+			// ===== PWA: register service worker =====
+			if ("serviceWorker" in navigator) {
+				window.addEventListener("load", () => {
+					navigator.serviceWorker.register("sw.js").catch(console.error);
+				});
+			}
+
+			// Init
+			setMode("work");
+			render();
+		</script>
+	</body>
+</html>
+
+<!-- ========== Icons (place in /icons/) ========== -->
+<!-- Create 192×192 and 512×512 PNGs named icon-192.png and icon-512.png. -->
